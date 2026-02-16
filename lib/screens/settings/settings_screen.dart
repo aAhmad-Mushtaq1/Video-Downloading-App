@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/constants/app_constants.dart';
-import '../widgets/glassmorphic_card.dart';
+import '../../core/constants/app_constants.dart';
+import '../../widgets/glassmorphic_card.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
 

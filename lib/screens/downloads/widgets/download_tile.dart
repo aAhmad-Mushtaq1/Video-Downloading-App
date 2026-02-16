@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../models/download_task.dart';
-import '../../widgets/animated_progress.dart';
-import '../../core/utils/format_utils.dart';
-import '../../widgets/glassmorphic_card.dart';
+import '../../../models/download_task.dart';
+import '../../../widgets/animated_progress.dart';
+import '../../../core/utils/format_utils.dart';
+import '../../../widgets/glassmorphic_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class DownloadTile extends StatelessWidget {
