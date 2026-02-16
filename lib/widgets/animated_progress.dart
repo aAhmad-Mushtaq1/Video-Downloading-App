@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 
@@ -219,8 +220,8 @@ class _CircularProgressPainter extends CustomPainter {
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      -3.14159 / 2,
-      progress * 2 * 3.14159,
+      -math.pi / 2,
+      progress * 2 * math.pi,
       false,
       progressPaint,
     );

@@ -123,7 +123,8 @@ class DownloadService {
       return getApplicationDocumentsDirectory();
     } else {
       // For desktop platforms
-      return getDownloadsDirectory() ?? await getApplicationDocumentsDirectory();
+      final downloadsDir = await getDownloadsDirectory();
+      return downloadsDir ?? await getApplicationDocumentsDirectory();
     }
   }
 
