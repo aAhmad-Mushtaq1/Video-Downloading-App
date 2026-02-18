@@ -1,0 +1,39 @@
+cmake_minimum_required(VERSION 3.10)
+project(runner LANGUAGES CXX)
+
+set(BINARY_NAME "video_downloader")
+set(APPLICATION_ID "com.videodownloader.app")
+
+cmake_policy(SET CMP0063 NEW)
+
+set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
+
+# Configure build
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Compilation settings
+if(NOT CONFIGURATION)
+  set(CONFIGURATION "Debug")
+endif()
+
+# Flutter tool
+set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
+
+# Application build
+add_executable(${BINARY_NAME}
+  "main.cc"
+  "my_application.cc"
+  "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
+)
+
+apply_standard_settings(${BINARY_NAME})
+
+# Add Flutter dependency
+add_dependencies(${BINARY_NAME} flutter flutter_assemble)
+
+target_link_libraries(${BINARY_NAME} PRIVATE flutter)
+target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
+
+# Install
+install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
