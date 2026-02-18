@@ -79,5 +79,7 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 # Install
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
 
-# Custom command for flutter_assemble
+# Custom target for flutter_assemble
+# This is a placeholder target that would normally be provided by Flutter's CMake modules
+# The actual Flutter build system will handle this when building with Flutter SDK
 add_custom_target(flutter_assemble)

@@ -46,4 +46,6 @@ target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
 
 # Custom target for flutter_assemble
+# This is a placeholder target that would normally be provided by Flutter's CMake modules
+# The actual Flutter build system will handle this when building with Flutter SDK
 add_custom_target(flutter_assemble)
