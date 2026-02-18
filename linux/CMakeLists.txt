@@ -27,13 +27,23 @@ add_executable(${BINARY_NAME}
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 
-apply_standard_settings(${BINARY_NAME})
+# Apply Flutter standard settings (inline version)
+set_target_properties(${BINARY_NAME} PROPERTIES
+  CXX_VISIBILITY_PRESET hidden)
+target_compile_definitions(${BINARY_NAME} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
 
 # Add Flutter dependency
 add_dependencies(${BINARY_NAME} flutter flutter_assemble)
+
+# Find required packages
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTK REQUIRED gtk+-3.0)
 
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
 
 # Install
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
+
+# Custom target for flutter_assemble
+add_custom_target(flutter_assemble)

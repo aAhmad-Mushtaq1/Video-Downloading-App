@@ -14,19 +14,17 @@ class AppTheme {
         primary: AppColors.accentPurple,
         secondary: AppColors.accentPink,
         surface: AppColors.darkSurface,
-        background: AppColors.darkBackground,
         error: Color(0xFFFF5252),
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: AppColors.textPrimary,
-        onBackground: AppColors.textPrimary,
         onError: Colors.white,
       ),
       textTheme: AppTypography.textTheme.apply(
         bodyColor: AppColors.textPrimary,
         displayColor: AppColors.textPrimary,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.darkCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -156,19 +154,17 @@ class AppTheme {
         primary: AppColors.accentPurple,
         secondary: AppColors.accentPink,
         surface: AppColors.lightSurface,
-        background: AppColors.lightBackground,
         error: Color(0xFFD32F2F),
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: Color(0xFF1A1A1A),
-        onBackground: Color(0xFF1A1A1A),
         onError: Colors.white,
       ),
       textTheme: AppTypography.textTheme.apply(
         bodyColor: const Color(0xFF1A1A1A),
         displayColor: const Color(0xFF1A1A1A),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.lightCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
