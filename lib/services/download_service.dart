@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:path_provider/path_provider.dart';
 import '../models/download_task.dart';
 
@@ -207,10 +208,10 @@ class DownloadService {
 
   String _sanitizeFileName(String fileName) {
     // Remove invalid characters from file name
-    return fileName
+    final sanitized = fileName
         .replaceAll(RegExp(r'[<>:"/\\|?*]'), '')
-        .replaceAll(RegExp(r'\s+'), '_')
-        .substring(0, fileName.length > 100 ? 100 : fileName.length);
+        .replaceAll(RegExp(r'\s+'), '_');
+    return sanitized.substring(0, min(sanitized.length, 100));
   }
 
   void dispose() {
