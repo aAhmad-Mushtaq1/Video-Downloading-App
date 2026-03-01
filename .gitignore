@@ -44,18 +44,18 @@ app.*.map.json
 /android/app/release
 
 # Web related
-/web/
+# /web/ - Web support is now enabled
 
 # Windows related
 windows/flutter/ephemeral/
-windows/flutter/generated_plugin_registrant.cc
-windows/flutter/generated_plugin_registrant.h
+# windows/flutter/generated_plugin_registrant.cc - Template file is now tracked
+# windows/flutter/generated_plugin_registrant.h - Template file is now tracked
 windows/flutter/generated_plugins.cmake
 
 # Linux related
 linux/flutter/ephemeral/
-linux/flutter/generated_plugin_registrant.cc
-linux/flutter/generated_plugin_registrant.h
+# linux/flutter/generated_plugin_registrant.cc - Template file is now tracked
+# linux/flutter/generated_plugin_registrant.h - Template file is now tracked
 linux/flutter/generated_plugins.cmake
 
 # macOS related
