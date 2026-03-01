@@ -1,50 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/download_task.dart';
+import '../../providers/download_provider.dart';
 import 'widgets/download_tile.dart';
 
-class DownloadsScreen extends StatefulWidget {
+class DownloadsScreen extends ConsumerWidget {
   const DownloadsScreen({super.key});
 
   @override
-  State<DownloadsScreen> createState() => _DownloadsScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref.watch(downloadNotifierProvider);
+    final notifier = ref.read(downloadNotifierProvider.notifier);
 
-class _DownloadsScreenState extends State<DownloadsScreen> {
-  final List<DownloadTask> _activeTasks = [];
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Active Downloads'),
         actions: [
-          if (_activeTasks.isNotEmpty)
+          if (tasks.any((t) => t.status == DownloadStatus.completed))
             TextButton.icon(
-              onPressed: _clearCompleted,
+              onPressed: notifier.clearCompleted,
               icon: const Icon(Icons.clear_all),
               label: const Text('Clear Completed'),
             ),
         ],
       ),
-      body: _activeTasks.isEmpty
-          ? _buildEmptyState()
+      body: tasks.isEmpty
+          ? _buildEmptyState(context)
           : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: _activeTasks.length,
+              itemCount: tasks.length,
               itemBuilder: (context, index) {
-                final task = _activeTasks[index];
+                final task = tasks[index];
                 return DownloadTile(
                   task: task,
-                  onPause: () => _pauseDownload(task),
-                  onResume: () => _resumeDownload(task),
-                  onCancel: () => _cancelDownload(task),
+                  onPause: task.status == DownloadStatus.downloading
+                      ? () => notifier.pauseDownload(task.id)
+                      : null,
+                  onResume: null,
+                  onCancel: task.status != DownloadStatus.completed
+                      ? () => notifier.cancelDownload(task.id)
+                      : null,
                 );
               },
             ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -71,34 +73,5 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
       ),
     );
   }
-
-  void _pauseDownload(DownloadTask task) {
-    setState(() {
-      final index = _activeTasks.indexWhere((t) => t.id == task.id);
-      if (index != -1) {
-        _activeTasks[index] = task.copyWith(status: DownloadStatus.paused);
-      }
-    });
-  }
-
-  void _resumeDownload(DownloadTask task) {
-    setState(() {
-      final index = _activeTasks.indexWhere((t) => t.id == task.id);
-      if (index != -1) {
-        _activeTasks[index] = task.copyWith(status: DownloadStatus.downloading);
-      }
-    });
-  }
-
-  void _cancelDownload(DownloadTask task) {
-    setState(() {
-      _activeTasks.removeWhere((t) => t.id == task.id);
-    });
-  }
-
-  void _clearCompleted() {
-    setState(() {
-      _activeTasks.removeWhere((t) => t.status == DownloadStatus.completed);
-    });
-  }
 }
+

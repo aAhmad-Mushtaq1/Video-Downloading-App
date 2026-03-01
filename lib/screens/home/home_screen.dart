@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/video_info.dart';
 import '../../models/download_task.dart';
 import '../../services/video_extraction_service.dart';
-import '../../services/download_service.dart';
+import '../../providers/download_provider.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../../core/utils/url_parser.dart';
@@ -13,7 +13,6 @@ import 'widgets/quality_selector.dart';
 import 'widgets/format_selector.dart';
 
 final videoExtractionServiceProvider = Provider((ref) => VideoExtractionService());
-final downloadServiceProvider = Provider((ref) => DownloadService());
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -58,7 +57,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       setState(() {
         _videoInfo = info;
         _selectedQuality = info.availableQualities.isNotEmpty
-            ? info.availableQualities[2].label
+            ? info.availableQualities.last.label
             : null;
         _selectedFormat = info.availableFormats.isNotEmpty
             ? info.availableFormats[0]
@@ -89,6 +88,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       status: DownloadStatus.queued,
       createdAt: DateTime.now(),
     );
+
+    ref.read(downloadNotifierProvider.notifier).startDownload(task);
 
     // Show success message
     if (mounted) {
