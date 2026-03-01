@@ -5,30 +5,7 @@ import '../core/utils/url_parser.dart';
 
 class VideoExtractionService {
   Future<VideoInfo> extractVideoInfo(String url) async {
-    // In a real app, this would call yt-dlp via process
-    // For now, we'll return mock data based on the URL
-    
-    final platform = UrlParser.detectPlatform(url) ?? 'Unknown';
-    
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // Mock data for demonstration
-    return VideoInfo(
-      url: url,
-      title: _getMockTitle(platform),
-      thumbnail: _getMockThumbnail(platform),
-      duration: '3:45',
-      author: _getMockAuthor(platform),
-      platform: platform,
-      availableQualities: [
-        const VideoQuality(label: '360p', resolution: '640x360', fileSize: '25 MB'),
-        const VideoQuality(label: '480p', resolution: '854x480', fileSize: '45 MB'),
-        const VideoQuality(label: '720p', resolution: '1280x720', fileSize: '85 MB'),
-        const VideoQuality(label: '1080p', resolution: '1920x1080', fileSize: '150 MB'),
-      ],
-      availableFormats: ['mp4', 'mkv', 'webm', 'mp3'],
-    );
+    return extractWithYtDlp(url);
   }
   
   Future<VideoInfo> extractWithYtDlp(String url) async {
@@ -49,6 +26,7 @@ class VideoExtractionService {
       
       final json = jsonDecode(result.stdout as String) as Map<String, dynamic>;
       
+      final qualities = _parseQualities(json);
       return VideoInfo(
         url: url,
         title: json['title'] as String? ?? 'Unknown',
@@ -56,13 +34,36 @@ class VideoExtractionService {
         duration: json['duration']?.toString(),
         author: json['uploader'] as String?,
         platform: UrlParser.detectPlatform(url) ?? 'Unknown',
-        availableQualities: _parseQualities(json),
+        availableQualities: qualities.isNotEmpty
+            ? qualities
+            : const [
+                VideoQuality(label: 'best', resolution: 'best available', fileSize: null),
+              ],
         availableFormats: ['mp4', 'mkv', 'webm', 'mp3'],
       );
     } catch (e) {
       // Fallback to mock data if yt-dlp is not available
-      return extractVideoInfo(url);
+      return _mockVideoInfo(url);
     }
+  }
+  
+  VideoInfo _mockVideoInfo(String url) {
+    final platform = UrlParser.detectPlatform(url) ?? 'Unknown';
+    return VideoInfo(
+      url: url,
+      title: _getMockTitle(platform),
+      thumbnail: _getMockThumbnail(platform),
+      duration: '3:45',
+      author: _getMockAuthor(platform),
+      platform: platform,
+      availableQualities: [
+        const VideoQuality(label: '360p', resolution: '640x360', fileSize: '25 MB'),
+        const VideoQuality(label: '480p', resolution: '854x480', fileSize: '45 MB'),
+        const VideoQuality(label: '720p', resolution: '1280x720', fileSize: '85 MB'),
+        const VideoQuality(label: '1080p', resolution: '1920x1080', fileSize: '150 MB'),
+      ],
+      availableFormats: ['mp4', 'mkv', 'webm', 'mp3'],
+    );
   }
   
   List<VideoQuality> _parseQualities(Map<String, dynamic> json) {
@@ -86,6 +87,12 @@ class VideoExtractionService {
       ));
     }
     
+    qualities.sort((a, b) {
+      final numericRegex = RegExp(r'[^0-9]');
+      final aH = int.tryParse(a.label.replaceAll(numericRegex, '')) ?? 0;
+      final bH = int.tryParse(b.label.replaceAll(numericRegex, '')) ?? 0;
+      return aH.compareTo(bH);
+    });
     return qualities;
   }
   
