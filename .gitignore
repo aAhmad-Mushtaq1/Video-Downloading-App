@@ -50,13 +50,13 @@ app.*.map.json
 windows/flutter/ephemeral/
 # windows/flutter/generated_plugin_registrant.cc - Template file is now tracked
 # windows/flutter/generated_plugin_registrant.h - Template file is now tracked
-windows/flutter/generated_plugins.cmake
+# windows/flutter/generated_plugins.cmake - Template file is now tracked
 
 # Linux related
 linux/flutter/ephemeral/
 # linux/flutter/generated_plugin_registrant.cc - Template file is now tracked
 # linux/flutter/generated_plugin_registrant.h - Template file is now tracked
-linux/flutter/generated_plugins.cmake
+# linux/flutter/generated_plugins.cmake - Template file is now tracked
 
 # macOS related
 macos/Flutter/ephemeral/

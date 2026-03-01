@@ -8,13 +8,6 @@ cmake_policy(SET CMP0063 NEW)
 
 set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
 
-# Configure build
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Compilation settings
-add_definitions(-DUNICODE -D_UNICODE)
-
 # Configure build type
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE
@@ -23,63 +16,59 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "Debug" "Profile" "Release")
 endif()
 
-# Flutter tool
+# Standard settings function used by flutter_wrapper_app and plugins.
+function(APPLY_STANDARD_SETTINGS TARGET)
+  target_compile_features(${TARGET} PUBLIC cxx_std_17)
+  target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100")
+  target_compile_definitions(${TARGET} PRIVATE "_HAS_EXCEPTIONS=0")
+  target_compile_definitions(${TARGET} PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
+endfunction()
+
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 
-# Flutter wrapper
-list(APPEND FLUTTER_LIBRARY_HEADERS
-  "flutter/dart_project.h"
-  "flutter/flutter_engine.h"
-  "flutter/flutter_plugin_registrar.h"
-  "flutter/flutter_view.h"
-  "flutter/flutter_view_controller.h"
-  "flutter/flutter_windows.h"
-  "flutter/generated_plugin_registrant.h"
-  "flutter/method_call.h"
-  "flutter/method_channel.h"
-  "flutter/method_codec.h"
-  "flutter/method_result.h"
-  "flutter/plugin_registrar.h"
-  "flutter/plugin_registrar_windows.h"
-  "flutter/standard_method_codec.h"
-)
-list(APPEND FLUTTER_LIBRARY_HEADERS
-  "flutter/generated_plugin_registrant.h"
-)
-add_library(flutter INTERFACE)
-target_include_directories(flutter INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-add_library(flutter_wrapper_app INTERFACE)
-target_link_libraries(flutter_wrapper_app INTERFACE flutter)
+# Flutter library and target
+add_subdirectory(${FLUTTER_MANAGED_DIR})
 
-# Application build
-add_executable(${BINARY_NAME} WIN32
-  "runner/main.cpp"
-  "runner/flutter_window.cpp"
-  "runner/run_loop.cpp"
-  "runner/utils.cpp"
-  "runner/win32_window.cpp"
-  "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
-  "runner/Runner.rc"
-  "runner/runner.exe.manifest"
-)
+# Application build target
+add_subdirectory("runner")
 
-# Apply Flutter standard settings (inline version)
-set_target_properties(${BINARY_NAME} PROPERTIES
-  CXX_VISIBILITY_PRESET hidden)
-target_compile_definitions(${BINARY_NAME} PRIVATE "_UNICODE" "UNICODE")
-target_compile_options(${BINARY_NAME} PRIVATE "/W4" "/WX" "/wd4100")
+# Generated plugin build rules
+include(flutter/generated_plugins.cmake)
 
-# Add Flutter dependency
-add_dependencies(${BINARY_NAME} flutter_assemble)
-target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
-target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
+# === Installation ===
+set(BUILD_BUNDLE_DIR "$<TARGET_FILE_DIR:${BINARY_NAME}>")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
+endif()
 
-# Install
-install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}")
+set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
+set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
-# Custom target for flutter_assemble
-# This is a placeholder target that would normally be provided by Flutter's CMake modules
-# The actual Flutter build system will handle this when building with Flutter SDK
-add_custom_target(flutter_assemble)
+install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+
+install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
+  COMPONENT Runtime)
+
+install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
+
+if(PLUGIN_BUNDLED_LIBRARIES)
+  install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+endif()
+
+# Fully re-copy the assets directory on each build to avoid stale files.
+set(FLUTTER_ASSET_DIR_NAME "flutter_assets")
+install(CODE "
+  file(REMOVE_RECURSE \"${INSTALL_BUNDLE_DATA_DIR}/${FLUTTER_ASSET_DIR_NAME}\")
+  " COMPONENT Runtime)
+install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
+  DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" COMPONENT Runtime)
+
+# Install the AOT library on non-Debug builds only.
+if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
+  install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
+    COMPONENT Runtime)
+endif()
