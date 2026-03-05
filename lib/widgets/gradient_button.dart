@@ -77,7 +77,7 @@ class _GradientButtonState extends State<GradientButton>
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              onTap: widget.isLoading ? null : widget.onPressed,
+              onTap: null,
               child: Center(
                 child: widget.isLoading
                     ? const SizedBox(

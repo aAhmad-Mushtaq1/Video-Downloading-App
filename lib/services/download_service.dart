@@ -58,6 +58,12 @@ class DownloadService {
       final process = await Process.start('yt-dlp', args);
       _processes[task.id] = process;
 
+      // Drain stderr concurrently to prevent pipe-buffer deadlock.
+      final stderrBuffer = StringBuffer();
+      process.stderr.transform(utf8.decoder).listen((data) {
+        stderrBuffer.write(data);
+      });
+
       process.stdout
           .transform(utf8.decoder)
           .transform(const LineSplitter())
@@ -79,9 +85,7 @@ class DownloadService {
           completedAt: DateTime.now(),
         ));
       } else {
-        final stderrOutput =
-            await process.stderr.transform(utf8.decoder).join();
-        throw Exception('yt-dlp failed (exit $exitCode): $stderrOutput');
+        throw Exception('yt-dlp failed (exit $exitCode): $stderrBuffer');
       }
     } on ProcessException {
       // yt-dlp not installed – fall back to simulation
@@ -100,10 +104,21 @@ class DownloadService {
       args.addAll(['-x', '--audio-format', 'mp3']);
     } else {
       final height = task.quality.replaceAll(RegExp(r'[^0-9]'), '');
-      args.addAll([
-        '-f',
-        'bestvideo[height<=$height]+bestaudio/best[height<=$height]/best',
-      ]);
+      if (task.quality.toLowerCase() == 'best' || height.isEmpty) {
+        args.addAll([
+          '-f',
+          'bestvideo+bestaudio/best',
+          '--merge-output-format',
+          task.format,
+        ]);
+      } else {
+        args.addAll([
+          '-f',
+          'bestvideo[height<=$height]+bestaudio/best[height<=$height]/best',
+          '--merge-output-format',
+          task.format,
+        ]);
+      }
     }
 
     args.addAll([

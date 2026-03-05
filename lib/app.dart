@@ -28,12 +28,13 @@ class _AppState extends ConsumerState<App> {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
       title: 'Video Downloader',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
+      themeMode: themeMode,
       home: ResponsiveLayout(
         mobile: _buildMobileLayout(),
         desktop: _buildDesktopLayout(),

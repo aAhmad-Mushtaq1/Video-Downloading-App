@@ -8,6 +8,7 @@ class AppConstants {
   static const String themeKey = 'theme_mode';
   static const String downloadPathKey = 'download_path';
   static const String defaultQualityKey = 'default_quality';
+  static const String defaultFormatKey = 'default_format';
   static const String concurrentDownloadsKey = 'concurrent_downloads';
   
   // Default values
