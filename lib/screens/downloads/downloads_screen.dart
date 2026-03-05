@@ -36,7 +36,9 @@ class DownloadsScreen extends ConsumerWidget {
                   onPause: task.status == DownloadStatus.downloading
                       ? () => notifier.pauseDownload(task.id)
                       : null,
-                  onResume: null,
+                  onResume: task.status == DownloadStatus.paused
+                      ? () => notifier.resumeDownload(task.id)
+                      : null,
                   onCancel: task.status != DownloadStatus.completed
                       ? () => notifier.cancelDownload(task.id)
                       : null,

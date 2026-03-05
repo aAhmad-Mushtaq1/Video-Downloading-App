@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_constants.dart';
+import '../../providers/storage_provider.dart';
 import '../../widgets/glassmorphic_card.dart';
 
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.dark);
@@ -16,6 +17,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _defaultQuality = AppConstants.defaultQuality;
   String _defaultFormat = AppConstants.defaultFormat;
   int _concurrentDownloads = AppConstants.defaultConcurrentDownloads;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadSettings());
+  }
+
+  Future<void> _loadSettings() async {
+    final storage = ref.read(storageServiceProvider);
+    final quality = storage.getSetting<String>(
+      AppConstants.defaultQualityKey,
+      defaultValue: AppConstants.defaultQuality,
+    );
+    final format = storage.getSetting<String>(
+      AppConstants.defaultFormatKey,
+      defaultValue: AppConstants.defaultFormat,
+    );
+    final concurrent = storage.getSetting<int>(
+      AppConstants.concurrentDownloadsKey,
+      defaultValue: AppConstants.defaultConcurrentDownloads,
+    );
+    final themeStr = storage.getSetting<String>(AppConstants.themeKey);
+    setState(() {
+      _defaultQuality = quality ?? AppConstants.defaultQuality;
+      _defaultFormat = format ?? AppConstants.defaultFormat;
+      _concurrentDownloads =
+          concurrent ?? AppConstants.defaultConcurrentDownloads;
+    });
+    if (themeStr != null) {
+      final mode = themeStr == 'light' ? ThemeMode.light : ThemeMode.dark;
+      ref.read(themeModeProvider.notifier).state = mode;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +73,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: const Text('Use dark theme for better visibility'),
               value: isDark,
               onChanged: (value) {
-                ref.read(themeModeProvider.notifier).state =
-                    value ? ThemeMode.dark : ThemeMode.light;
+                final newMode = value ? ThemeMode.dark : ThemeMode.light;
+                ref.read(themeModeProvider.notifier).state = newMode;
+                ref.read(storageServiceProvider).saveSetting(
+                      AppConstants.themeKey,
+                      value ? 'dark' : 'light',
+                    );
               },
               secondary: Icon(isDark ? Icons.dark_mode : Icons.light_mode),
             ),
@@ -76,6 +114,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => _defaultQuality = value);
+                      ref.read(storageServiceProvider).saveSetting(
+                            AppConstants.defaultQualityKey,
+                            value,
+                          );
                     }
                   },
                 ),
@@ -102,6 +144,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => _defaultFormat = value);
+                      ref.read(storageServiceProvider).saveSetting(
+                            AppConstants.defaultFormatKey,
+                            value,
+                          );
                     }
                   },
                 ),
@@ -124,6 +170,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         label: _concurrentDownloads.toString(),
                         onChanged: (value) {
                           setState(() => _concurrentDownloads = value.toInt());
+                          ref.read(storageServiceProvider).saveSetting(
+                                AppConstants.concurrentDownloadsKey,
+                                value.toInt(),
+                              );
                         },
                       ),
                     ),

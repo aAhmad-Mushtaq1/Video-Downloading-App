@@ -8,10 +8,14 @@ class StorageService {
   Box<Map>? _historyBox;
   Box<dynamic>? _settingsBox;
 
+  bool _initialized = false;
+
   Future<void> init() async {
+    if (_initialized) return;
     await Hive.initFlutter();
     _historyBox = await Hive.openBox<Map>(_historyBoxName);
     _settingsBox = await Hive.openBox(_settingsBoxName);
+    _initialized = true;
   }
 
   // History operations

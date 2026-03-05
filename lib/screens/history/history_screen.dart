@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/download_history.dart';
-import '../../services/storage_service.dart';
+import '../../providers/storage_provider.dart';
 import 'widgets/history_item.dart';
-
-final storageServiceProvider = Provider((ref) => StorageService());
 
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -27,7 +25,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Future<void> _loadHistory() async {
     setState(() => _isLoading = true);
     final service = ref.read(storageServiceProvider);
-    await service.init();
     final history = await service.getHistory();
     setState(() {
       _history = history;
