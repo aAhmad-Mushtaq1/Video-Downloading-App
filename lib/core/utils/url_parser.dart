@@ -21,6 +21,15 @@ class UrlParser {
     return urlPattern.hasMatch(url);
   }
 
+  static bool isValidVideoUrl(String url) {
+    // Check if URL is valid format first
+    if (!isValidUrl(url)) {
+      return false;
+    }
+    // Check if URL is from a supported video platform
+    return detectPlatform(url) != null;
+  }
+
   static String getPlatformIcon(String platform) {
     switch (platform.toLowerCase()) {
       case 'youtube':
