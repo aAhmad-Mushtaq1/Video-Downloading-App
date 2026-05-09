@@ -9,6 +9,11 @@ class VideoExtractionService {
   }
   
   Future<VideoInfo> extractWithYtDlp(String url) async {
+    // Validate if URL is from a supported video platform
+    if (!UrlParser.isValidVideoUrl(url)) {
+      throw Exception('Invalid URL, Please paste correct url to catch the video!');
+    }
+
     try {
       // Call yt-dlp to get video info
       final result = await Process.run(
@@ -21,7 +26,7 @@ class VideoExtractionService {
       );
       
       if (result.exitCode != 0) {
-        throw Exception('Failed to extract video info: ${result.stderr}');
+        throw Exception('Invalid URL, Please paste correct url to catch the video!');
       }
       
       final json = jsonDecode(result.stdout as String) as Map<String, dynamic>;
@@ -42,6 +47,10 @@ class VideoExtractionService {
         availableFormats: ['mp4', 'mkv', 'webm', 'mp3'],
       );
     } catch (e) {
+      // If it's our custom validation error, rethrow it
+      if (e.toString().contains('Invalid URL, Please paste correct url to catch the video!')) {
+        rethrow;
+      }
       // Fallback to mock data if yt-dlp is not available
       return _mockVideoInfo(url);
     }
