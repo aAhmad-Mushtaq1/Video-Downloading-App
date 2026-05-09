@@ -67,10 +67,9 @@ A stunning, cross-platform video downloader app with premium UI supporting **170
 
 ### Clone the Repository
 ```bash
-git clone https://github.com/133ahmad133/Video-Downloader-.git
+git clone https://github.com/aAhmad-Mushtaq1/Video-Downloading-App.git
 cd Video-Downloader-
 ```
-
 ### Install Dependencies
 ```bash
 flutter pub get
