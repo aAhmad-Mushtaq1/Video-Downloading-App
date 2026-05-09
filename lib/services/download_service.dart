@@ -138,15 +138,83 @@ class DownloadService {
   ) {
     // [download]  45.2% of 100.00MiB at 5.00MiB/s ETA 00:11
     final regex = RegExp(
-      r'\[download\]\s+([\d.]+)%\s+of\s+~?\s*[\d.]+\S+\s+at\s+[\d.]+\S+(?:\s+ETA\s+(\S+))?',
+      r'\[download\]\s+([\d.]+)%\s+of\s+~?\s*([\d.]+)\s*([KMGT]i?B)\s+at\s+([\d.]+)\s*([KMGT]i?B\/s)(?:\s+ETA\s+(\S+))?',
     );
     final match = regex.firstMatch(line);
     if (match != null) {
       final progressPct = double.tryParse(match.group(1) ?? '0') ?? 0;
+      final totalSizeStr = match.group(2) ?? '0';
+      final totalSizeUnit = match.group(3) ?? 'B';
+      final speedStr = match.group(4) ?? '0';
+      final speedUnit = match.group(5) ?? 'B/s';
+      final eta = match.group(6);
+
+      // Convert total size to bytes
+      final totalBytes = _convertToBytes(totalSizeStr, totalSizeUnit);
+      
+      // Calculate downloaded bytes from percentage
+      final downloadedBytes = ((progressPct / 100) * totalBytes).toInt();
+      
+      // Convert speed to bytes per second
+      final speed = _convertSpeedToBytes(speedStr, speedUnit);
+
       controller.add(task.copyWith(
         progress: progressPct / 100,
-        eta: match.group(2),
+        downloadedBytes: downloadedBytes,
+        totalBytes: totalBytes,
+        speed: speed,
+        eta: eta,
       ));
+    }
+  }
+
+  /// Converts file size string to bytes
+  /// Example: "100.50 MiB" -> 105398272 bytes
+  int _convertToBytes(String sizeStr, String unit) {
+    final size = double.tryParse(sizeStr) ?? 0;
+    
+    switch (unit.toUpperCase()) {
+      case 'B':
+        return size.toInt();
+      case 'KIB':
+      case 'KB':
+        return (size * 1024).toInt();
+      case 'MIB':
+      case 'MB':
+        return (size * 1024 * 1024).toInt();
+      case 'GIB':
+      case 'GB':
+        return (size * 1024 * 1024 * 1024).toInt();
+      case 'TIB':
+      case 'TB':
+        return (size * 1024 * 1024 * 1024 * 1024).toInt();
+      default:
+        return size.toInt();
+    }
+  }
+
+  /// Converts speed string to bytes per second
+  /// Example: "5.50 MiB/s" -> 5767168 bytes/s
+  double _convertSpeedToBytes(String speedStr, String unit) {
+    final speed = double.tryParse(speedStr) ?? 0;
+    
+    switch (unit.toUpperCase()) {
+      case 'B/S':
+        return speed;
+      case 'KIB/S':
+      case 'KB/S':
+        return speed * 1024;
+      case 'MIB/S':
+      case 'MB/S':
+        return speed * 1024 * 1024;
+      case 'GIB/S':
+      case 'GB/S':
+        return speed * 1024 * 1024 * 1024;
+      case 'TIB/S':
+      case 'TB/S':
+        return speed * 1024 * 1024 * 1024 * 1024;
+      default:
+        return speed;
     }
   }
 
