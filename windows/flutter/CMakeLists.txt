@@ -1,26 +1,21 @@
+# This file controls Flutter-level build steps. It should not be edited.
 cmake_minimum_required(VERSION 3.14)
-project(flutter)
 
 set(EPHEMERAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ephemeral")
 
-# Configuration provided via temporary CMakeLists.txt file within the flutter
-# temporary build directory.
+# Configuration provided via flutter tool.
 include(${EPHEMERAL_DIR}/generated_config.cmake)
 
-# Serves the same purpose as list(APPEND ...) but operates on paths.
-function(list_prepend LIST_NAME)
-    set(LOCAL_LIST "${${LIST_NAME}}")
-    foreach(argument ${ARGN})
-        set(LOCAL_LIST "${argument};${LOCAL_LIST}")
-    endforeach(argument)
-    set(${LIST_NAME} "${LOCAL_LIST}" PARENT_SCOPE)
-endfunction()
+# TODO: Move the rest of this into files in ephemeral. See
+# https://github.com/flutter/flutter/issues/57146.
+set(WRAPPER_ROOT "${EPHEMERAL_DIR}/cpp_client_wrapper")
+
+# Set fallback configurations for older versions of the flutter tool.
+if (NOT DEFINED FLUTTER_TARGET_PLATFORM)
+  set(FLUTTER_TARGET_PLATFORM "windows-x64")
+endif()
 
 # === Flutter Library ===
-# System-level dependencies.
-find_package(OpenGL REQUIRED)
-
-add_library(flutter INTERFACE)
 set(FLUTTER_LIBRARY "${EPHEMERAL_DIR}/flutter_windows.dll")
 
 # Published to parent scope for install step.
@@ -30,61 +25,85 @@ set(PROJECT_BUILD_DIR "${PROJECT_DIR}/build/" PARENT_SCOPE)
 set(AOT_LIBRARY "${PROJECT_DIR}/build/windows/app.so" PARENT_SCOPE)
 
 list(APPEND FLUTTER_LIBRARY_HEADERS
-  "flutter/dart_project.h"
-  "flutter/flutter_engine.h"
-  "flutter/flutter_plugin_registrar.h"
-  "flutter/flutter_view.h"
-  "flutter/flutter_view_controller.h"
-  "flutter/flutter_windows.h"
-  "flutter/method_call.h"
-  "flutter/method_channel.h"
-  "flutter/method_codec.h"
-  "flutter/method_result.h"
-  "flutter/plugin_registrar.h"
-  "flutter/plugin_registrar_windows.h"
-  "flutter/standard_method_codec.h"
+  "flutter_export.h"
+  "flutter_windows.h"
+  "flutter_messenger.h"
+  "flutter_plugin_registrar.h"
+  "flutter_texture_registrar.h"
 )
-list_prepend(FLUTTER_LIBRARY_HEADERS "${EPHEMERAL_DIR}/")
-target_sources(flutter INTERFACE
-  ${FLUTTER_LIBRARY_HEADERS}
-)
+list(TRANSFORM FLUTTER_LIBRARY_HEADERS PREPEND "${EPHEMERAL_DIR}/")
+add_library(flutter INTERFACE)
 target_include_directories(flutter INTERFACE
   "${EPHEMERAL_DIR}"
 )
 target_link_libraries(flutter INTERFACE "${FLUTTER_LIBRARY}.lib")
-add_custom_target(flutter_assemble DEPENDS
-  "${FLUTTER_LIBRARY}"
-  "${FLUTTER_ICU_DATA_FILE}"
-)
+add_dependencies(flutter flutter_assemble)
 
-# === Flutter Wrapper ===
+# === Wrapper ===
 list(APPEND CPP_WRAPPER_SOURCES_CORE
-  "flutter/cpp_client_wrapper/core_implementations.cc"
-  "flutter/cpp_client_wrapper/standard_codec.cc"
+  "core_implementations.cc"
+  "standard_codec.cc"
 )
-list(APPEND CPP_WRAPPER_SOURCES_AND_HEADERS
+list(TRANSFORM CPP_WRAPPER_SOURCES_CORE PREPEND "${WRAPPER_ROOT}/")
+list(APPEND CPP_WRAPPER_SOURCES_PLUGIN
+  "plugin_registrar.cc"
+)
+list(TRANSFORM CPP_WRAPPER_SOURCES_PLUGIN PREPEND "${WRAPPER_ROOT}/")
+list(APPEND CPP_WRAPPER_SOURCES_APP
+  "flutter_engine.cc"
+  "flutter_view_controller.cc"
+)
+list(TRANSFORM CPP_WRAPPER_SOURCES_APP PREPEND "${WRAPPER_ROOT}/")
+
+# Wrapper sources needed for a plugin.
+add_library(flutter_wrapper_plugin STATIC
   ${CPP_WRAPPER_SOURCES_CORE}
-  "flutter/cpp_client_wrapper/include/flutter/basic_message_channel.h"
-  "flutter/cpp_client_wrapper/include/flutter/binary_messenger.h"
-  "flutter/cpp_client_wrapper/include/flutter/encodable_value.h"
-  "flutter/cpp_client_wrapper/include/flutter/engine_method_result.h"
-  "flutter/cpp_client_wrapper/include/flutter/message_codec.h"
-  "flutter/cpp_client_wrapper/include/flutter/method_call.h"
-  "flutter/cpp_client_wrapper/include/flutter/method_channel.h"
-  "flutter/cpp_client_wrapper/include/flutter/method_codec.h"
-  "flutter/cpp_client_wrapper/include/flutter/method_result.h"
-  "flutter/cpp_client_wrapper/include/flutter/method_result_functions.h"
-  "flutter/cpp_client_wrapper/include/flutter/plugin_registrar.h"
-  "flutter/cpp_client_wrapper/include/flutter/plugin_registry.h"
-  "flutter/cpp_client_wrapper/include/flutter/standard_message_codec.h"
-  "flutter/cpp_client_wrapper/include/flutter/standard_method_codec.h"
+  ${CPP_WRAPPER_SOURCES_PLUGIN}
 )
-list_prepend(CPP_WRAPPER_SOURCES_AND_HEADERS "${EPHEMERAL_DIR}/")
+apply_standard_settings(flutter_wrapper_plugin)
+set_target_properties(flutter_wrapper_plugin PROPERTIES
+  POSITION_INDEPENDENT_CODE ON)
+set_target_properties(flutter_wrapper_plugin PROPERTIES
+  CXX_VISIBILITY_PRESET hidden)
+target_link_libraries(flutter_wrapper_plugin PUBLIC flutter)
+target_include_directories(flutter_wrapper_plugin PUBLIC
+  "${WRAPPER_ROOT}/include"
+)
+add_dependencies(flutter_wrapper_plugin flutter_assemble)
+
+# Wrapper sources needed for the runner.
 add_library(flutter_wrapper_app STATIC
-  ${CPP_WRAPPER_SOURCES_AND_HEADERS}
+  ${CPP_WRAPPER_SOURCES_CORE}
+  ${CPP_WRAPPER_SOURCES_APP}
 )
 apply_standard_settings(flutter_wrapper_app)
 target_link_libraries(flutter_wrapper_app PUBLIC flutter)
 target_include_directories(flutter_wrapper_app PUBLIC
-  "${EPHEMERAL_DIR}/flutter/cpp_client_wrapper/include"
+  "${WRAPPER_ROOT}/include"
+)
+add_dependencies(flutter_wrapper_app flutter_assemble)
+
+# === Flutter tool backend ===
+# _phony_ is a non-existent file to force this command to run every time,
+# since currently there's no way to get a full input/output list from the
+# flutter tool.
+set(PHONY_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/_phony_")
+set_source_files_properties("${PHONY_OUTPUT}" PROPERTIES SYMBOLIC TRUE)
+add_custom_command(
+  OUTPUT ${FLUTTER_LIBRARY} ${FLUTTER_LIBRARY_HEADERS}
+    ${CPP_WRAPPER_SOURCES_CORE} ${CPP_WRAPPER_SOURCES_PLUGIN}
+    ${CPP_WRAPPER_SOURCES_APP}
+    ${PHONY_OUTPUT}
+  COMMAND ${CMAKE_COMMAND} -E env
+    ${FLUTTER_TOOL_ENVIRONMENT}
+    "${FLUTTER_ROOT}/packages/flutter_tools/bin/tool_backend.bat"
+      ${FLUTTER_TARGET_PLATFORM} $<CONFIG>
+  VERBATIM
+)
+add_custom_target(flutter_assemble DEPENDS
+  "${FLUTTER_LIBRARY}"
+  ${FLUTTER_LIBRARY_HEADERS}
+  ${CPP_WRAPPER_SOURCES_CORE}
+  ${CPP_WRAPPER_SOURCES_PLUGIN}
+  ${CPP_WRAPPER_SOURCES_APP}
 )
